@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figma WEB TEST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #1ec9c4;
+            --bg-dark: #000000;
+            --card-bg: #0a0a0a;
+            --text-main: #ffffff;
+            --text-sub: #888888;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        .progress-header {
+            width: 100%; height: 4px; background: #1a1a1a; z-index: 100;
+        }
+        #progress-bar {
+            height: 100%; width: 0%; background: var(--primary);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .page-container {
+            flex: 1; overflow-y: auto; padding: 40px 20px; scroll-behavior: smooth;
+        }
+
+        .page {
+            display: none; width: 100%; max-width: 850px; margin: 0 auto;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* メイン表紙スタイル (背景 #1ec9c4) */
+        .main-cover-page {
+            height: calc(100vh - 150px);
+            background-color: var(--primary);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center;
+            margin: -40px -20px; /* 親のパディングを相殺 */
+            color: #000; /* 背景が明るいので文字は黒系に */
+        }
+        .cover-title {
+            font-size: clamp(2.5rem, 10vw, 4.5rem); letter-spacing: 0.05em; font-weight: 800; margin-bottom: 10px;
+        }
+        .cover-subtitle {
+            font-size: clamp(1rem, 3vw, 1.4rem); font-weight: 500; opacity: 0.8;
+        }
+
+        /* 設問ブロック */
+        .section-label {
+            color: var(--primary); font-size: 0.9rem; margin-bottom: 25px; 
+            font-weight: 700; border-left: 3px solid var(--primary); padding-left: 15px;
+        }
+        .question-block {
+            background: var(--card-bg); border: 1px solid #1a1a1a;
+            padding: 40px; border-radius: 12px; margin-bottom: 40px;
+        }
+        .question-num {
+            color: var(--primary); font-weight: 700; font-size: 0.8rem;
+            letter-spacing: 2px; margin-bottom: 15px; display: block;
+        }
+        h2 { font-size: 1.4rem; margin-bottom: 25px; font-weight: 700; color: #fff; }
+
+        textarea, input[type="text"] {
+            width: 100%; background: #000; border: 1px solid #333; color: #fff;
+            padding: 18px; font-size: 1rem; border-radius: 8px; outline: none; transition: 0.3s;
+        }
+        textarea:focus, input[type="text"]:focus { border-color: var(--primary); }
+        textarea { height: 120px; resize: vertical; }
+
+        .options-grid { display: grid; gap: 12px; }
+        .option-item {
+            background: #111; border: 1px solid #222; padding: 18px 24px;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        .option-item.selected { border-color: var(--primary); background: rgba(30, 201, 196, 0.1); color: var(--primary); font-weight: 700; }
+
+        .nav-controls {
+            padding: 25px 40px; background: #050505; display: flex;
+            justify-content: space-between; align-items: center; border-top: 1px solid #111;
+        }
+
+        .btn {
+            padding: 14px 35px; border-radius: 50px; font-weight: 700; cursor: pointer;
+            transition: 0.3s; border: none; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-next { background: var(--primary); color: #000; min-width: 140px; }
+        .btn-prev { background: transparent; color: var(--text-sub); border: 1px solid #222; }
+
+        .result-item {
+            background: #0d0d0d; padding: 25px; border-radius: 8px;
+            margin-bottom: 20px; border: 1px solid #1a1a1a;
+        }
+        .result-q { color: var(--primary); font-size: 0.9rem; margin-bottom: 10px; font-weight: 700; }
+        .result-a { font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 10px; word-wrap: break-word; }
+        .correct-ans { color: #ccc; font-size: 0.9rem; line-height: 1.5; background: #151515; padding: 15px; border-radius: 6px; white-space: pre-wrap; }
+
+        @media (max-width: 600px) {
+            .question-block { padding: 20px; }
+            .nav-controls { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="progress-header"><div id="progress-bar"></div></div>
+    <div class="page-container" id="quiz-body"></div>
+    <div class="nav-controls">
+        <button class="btn btn-prev" id="prev-btn" onclick="changePage(-1)" style="visibility: hidden;">BACK</button>
+        <button class="btn btn-next" id="next-btn" onclick="changePage(1)">START TEST</button>
+    </div>
+</div>
+
+<script>
+    const pagesData = [
+        {
+            title: "Fundamentals",
+            questions: [
+                { id: 1, type: 'input', q: 'HEXを使って、青を表現する場合の数値を求めよ。', ans: 'HEXカラーコードは、赤（Red）、緑（Green）、青（Blue）の三原色の混合比率を示します。例：#0000FFが純粋な青です。' },
+                { id: 2, type: 'choice', q: 'レクタングルについての説明している選択肢を選べ。', opts: ['長方形の形をした広告、またはFigmaの長方形ツール','円形のパスを作成するツール','テキストを流し込むための枠','レイヤーを非表示にする設定'], ans: 'Figmaでは長方形ツールがレクタングルと呼ばれます。' },
+                { id: 3, type: 'input', q: 'WEB上のオブジェクトの角を丸くする機能は何と呼ばれる機能か。', ans: '「ラディウス（radius）」と呼びます。' }
+            ]
+        },
+        {
+            title: "Design System",
+            questions: [
+                { id: 4, type: 'choice', q: 'primitiveとprimaryの違いについて説明している選択肢を選べ。', opts: ['primitiveはデザイントークンの基底、primaryは優先順位を示す','primitiveはメインカラー、primaryはサブカラー','primitiveは静的、primaryは動的な要素','両者は名称が違うだけで機能は同じ'], ans: 'primitiveは色の基底値、primaryは役割（優先度）を示します。' },
+                { id: 5, type: 'input', q: 'ライブラリに限定的な場所に指定をするためのルールを何というか。', ans: 'semantic' },
+                { id: 6, type: 'input', q: 'Variant（バリアント）について説明せよ。', long: true, ans: 'Figma等で、ボタンの異なる状態（ホバー等）を1つのセットとして管理する機能です。' }
+            ]
+        },
+        {
+            title: "Layout & Components",
+            questions: [
+                { id: 7, type: 'input', q: 'UIコンポーネントについて説明せよ。', long: true, ans: '画面を構成するボタンや入力欄などの再利用可能な部品の総称です。' },
+                { id: 8, type: 'input', q: 'マージンとパディングの違いについて説明せよ。', long: true, ans: 'paddingは要素の内側、marginは要素の外側の余白です。' },
+                { id: 9, type: 'input', q: 'デザインファンデーションとデザインシステムの関係性を説明せよ。', long: true, ans: 'ファンデーション（色や書体）を基盤にシステムが構築されます。' }
+            ]
+        },
+        {
+            title: "UI Patterns",
+            questions: [
+                { id: 10, type: 'choice', q: 'ハンバーガーメニューとドロワーメニューの違いは？', opts: ['ハンバーガーはアイコン自体、ドロワーは現れるメニュー画面','ハンバーガーは画面、ドロワーはボタン','ハンバーガーは縦、ドロワーは横に動く','両者は同じものを指す'], ans: 'ハンバーガーはアイコン、ドロワーは引き出し状の画面です。' },
+                { id: 11, type: 'choice', q: 'カルーセルについて説明している文章を選択せよ。', opts: ['複数のコンテンツを左右にスライドさせ、循環表示させる機能','画像を上下に並べるギャラリー','自動的にページが更新される機能','クリックで拡大する機能'], ans: '情報を循環表示させるスライダー機能です。' },
+                { id: 12, type: 'choice', q: 'プログレスバーについて説明している文章を選択せよ。', opts: ['処理状況を知らせるUI','エラーを通知するバー','サイトの訪問者数を示すバー','広告の表示残り時間'], ans: '進捗（処理状況）を知らせるバーです。' }
+            ]
+        },
+        {
+            title: "Feedback & Interactions",
+            questions: [
+                { id: 13, type: 'choice', q: 'プレースホルダーについて説明している文章を選択せよ。', opts: ['入力欄にヒントとして表示される一時的な文言','入力確定後の決定ボタン','エラー時に赤くなる枠線','フォームの送信先URL'], ans: '入力欄に表示される仮のヒントテキストです。' },
+                { id: 14, type: 'choice', q: 'ツールチップについて説明している文章を選択せよ。', opts: ['マウスオーバーやタップすると表示される補足説明','画面下に固定されるバナー','ページ遷移時のアニメーション','ブラウザのタブ名'], ans: '操作時に浮かび上がる補足説明です。' },
+                { id: 15, type: 'choice', q: 'トーストについて説明している文章を選択せよ。', opts: ['画面上に一時的に表示され、自動的に消える通知','クリックするまで消えない警告','画面全体を覆う暗い背景','入力内容を削除するボタン'], ans: '数秒で自動消去される簡易通知です。' }
+            ]
+        },
+        {
+            title: "Button Logic",
+            questions: [
+                { id: 16, type: 'input', q: 'ボタンで使用される一般的なバリアントを3つ記入せよ。', long: true, ans: 'Filled, Outlined, Text(Ghost) が一般的です。' },
+                { id: 17, type: 'input', q: 'ボタンで一般的なインタラクションを５つ記入せよ。', long: true, ans: 'Default, Hover, Focus, Active, Disabled が基本です。' }
+            ]
+        },
+        {
+            title: "Psychology & Principles",
+            questions: [
+                { id: 18, type: 'input', q: '直感的に使用方法を理解できるデザインの考え方は？', ans: 'アフォーダンス' },
+                { id: 19, type: 'input', q: '選択肢が多いと迷いやすくなる法則は？', ans: 'ヒックの法則' },
+                { id: 20, type: 'input', q: '短期記憶の容量に関する法則は？', ans: 'ミラーの法則' },
+                { id: 21, type: 'choice', q: '「最後」で印象が決まる法則は？', opts: ['ピーク・エンドの法則','ハロー効果','初頭効果','ザイアンス効果'], ans: 'ピーク・エンドの法則' },
+                { id: 22, type: 'choice', q: '「まとまり」として捉える傾向の法則は？', opts: ['ゲシュタルトの法則','フィッツの法則','ヤコブの法則','ポステルの法則'], ans: 'ゲシュタルトの法則' },
+                { id: 23, type: 'choice', q: '表現方法を変えるだけで印象が変わる現象は？', opts: ['フレーミング効果','アンカリング効果','サンクコストバイアス','ピグマリオン効果'], ans: 'フレーミング効果' }
+            ]
+        }
+    ];
+
+    let currentPage = 0;
+    const userAnswers = {};
+    const flatPages = [];
+
+    function initQuiz() {
+        // 1. メイン表紙 (背景 #1ec9c4)
+        flatPages.push({ type: 'main-cover' });
+
+        // 2. 設問ページ (扉絵なし)
+        pagesData.forEach(pData => {
+            flatPages.push({ type: 'questions', data: pData });
+        });
+
+        // 3. 結果ページ
+        flatPages.push({ type: 'result' });
+
+        const container = document.getElementById('quiz-body');
+        flatPages.forEach((page, idx) => {
+            const div = document.createElement('div');
+            div.className = `page ${idx === 0 ? 'active' : ''}`;
+            div.id = `page-${idx}`;
+
+            if (page.type === 'main-cover') {
+                div.innerHTML = `
+                    <div class="main-cover-page">
+                        <h1 class="cover-title">Figma WEB TEST</h1>
+                        <p class="cover-subtitle">Educational test of UI design through Figma</p>
+                    </div>`;
+            } else if (page.type === 'questions') {
+                let html = `<div class="section-label">${page.data.title}</div>`;
+                page.data.questions.forEach(q => {
+                    let inputArea = q.type === 'input' 
+                        ? (q.long ? `<textarea id="q-${q.id}" oninput="saveAns(${q.id})" placeholder="回答を入力..."></textarea>` : `<input type="text" id="q-${q.id}" oninput="saveAns(${q.id})" placeholder="回答を入力...">`)
+                        : `<div class="options-grid">${[...q.opts].sort(()=>Math.random()-0.5).map(o => `<div class="option-item" onclick="setOpt(${q.id},'${o}',this)">${o}</div>`).join('')}</div>`;
+                    html += `<div class="question-block"><span class="question-num">Q${q.id}</span><h2>${q.q}</h2>${inputArea}</div>`;
+                });
+                div.innerHTML = html;
+            } else if (page.type === 'result') {
+                div.innerHTML = `
+                    <div class="question-block">
+                        <span class="question-num">FINAL REPORT</span>
+                        <h2>テスト結果・解説</h2>
+                        <div id="result-summary"></div>
+                        <div style="text-align:center; margin-top:30px;">
+                            <button class="btn btn-next" style="background:#fff;" onclick="takeScreenshot()">結果を画像で保存</button>
+                        </div>
+                    </div>`;
+            }
+            container.appendChild(div);
+        });
+    }
+
+    window.saveAns = (id) => userAnswers[id] = document.getElementById(`q-${id}`).value;
+    window.setOpt = (id, val, el) => {
+        userAnswers[id] = val;
+        el.parentElement.querySelectorAll('.option-item').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+    };
+
+    window.changePage = (step) => {
+        document.getElementById(`page-${currentPage}`).classList.remove('active');
+        currentPage += step;
+        document.getElementById(`page-${currentPage}`).classList.add('active');
+        
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+
+        prevBtn.style.visibility = currentPage === 0 ? 'hidden' : 'visible';
+        
+        if (currentPage === 0) {
+            nextBtn.innerText = "START TEST";
+            nextBtn.style.display = 'block';
+        } else if (currentPage === flatPages.length - 1) {
+            showSummary();
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'block';
+            nextBtn.innerText = "NEXT";
+        }
+        
+        updateProgress();
+        document.querySelector('.page-container').scrollTop = 0;
+    };
+
+    function updateProgress() {
+        const pct = (currentPage / (flatPages.length - 1)) * 100;
+        document.getElementById('progress-bar').style.width = pct + "%";
+    }
+
+    function showSummary() {
+        const target = document.getElementById('result-summary');
+        let html = '';
+        pagesData.forEach(p => {
+            p.questions.forEach(q => {
+                html += `<div class="result-item">
+                    <div class="result-q">Q${q.id}: ${q.q}</div>
+                    <div class="result-a">${userAnswers[q.id] || '未入力'}</div>
+                    <div class="correct-ans">${q.ans}</div>
+                </div>`;
+            });
+        });
+        target.innerHTML = html;
+    }
+
+    function takeScreenshot() {
+        const element = document.getElementById('result-summary');
+        html2canvas(element, { backgroundColor: "#000000", scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Figma_Web_Test.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
