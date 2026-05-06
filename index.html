@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Figma WEB TEST</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary: #1ec9c4;
             --bg-dark: #000000;
+            --bg-white: #ffffff;
             --card-bg: #0a0a0a;
             --text-main: #ffffff;
             --text-sub: #888888;
@@ -55,21 +56,27 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* メイン表紙スタイル (背景 #1ec9c4) */
+        /* メイン表紙スタイル (背景白) */
         .main-cover-page {
             height: calc(100vh - 150px);
-            background-color: var(--primary);
+            background-color: var(--bg-white);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             text-align: center;
-            margin: -40px -20px; /* 親のパディングを相殺 */
-            color: #000; /* 背景が明るいので文字は黒系に */
+            margin: -40px -20px;
+            color: #1a1a1a;
+        }
+        .cover-logo {
+            max-width: 320px;
+            width: 70%;
+            height: auto;
+            margin-bottom: 40px;
         }
         .cover-title {
-            font-size: clamp(2.5rem, 10vw, 4.5rem); letter-spacing: 0.05em; font-weight: 800; margin-bottom: 10px;
+            font-size: clamp(2rem, 8vw, 3.5rem); letter-spacing: 0.02em; font-weight: 800; margin-bottom: 8px;
         }
         .cover-subtitle {
-            font-size: clamp(1rem, 3vw, 1.4rem); font-weight: 500; opacity: 0.8;
+            font-size: clamp(0.9rem, 3vw, 1.2rem); color: #666; font-weight: 400; letter-spacing: 0.05em;
         }
 
         /* 設問ブロック */
@@ -205,15 +212,12 @@
     const flatPages = [];
 
     function initQuiz() {
-        // 1. メイン表紙 (背景 #1ec9c4)
         flatPages.push({ type: 'main-cover' });
 
-        // 2. 設問ページ (扉絵なし)
         pagesData.forEach(pData => {
             flatPages.push({ type: 'questions', data: pData });
         });
 
-        // 3. 結果ページ
         flatPages.push({ type: 'result' });
 
         const container = document.getElementById('quiz-body');
@@ -225,6 +229,7 @@
             if (page.type === 'main-cover') {
                 div.innerHTML = `
                     <div class="main-cover-page">
+                        <img src="logo-teasm-01-(1).png" class="cover-logo" alt="Logo">
                         <h1 class="cover-title">Figma WEB TEST</h1>
                         <p class="cover-subtitle">Educational test of UI design through Figma</p>
                     </div>`;
@@ -244,7 +249,7 @@
                         <h2>テスト結果・解説</h2>
                         <div id="result-summary"></div>
                         <div style="text-align:center; margin-top:30px;">
-                            <button class="btn btn-next" style="background:#fff;" onclick="takeScreenshot()">結果を画像で保存</button>
+                            <button class="btn btn-next" style="background:#fff; color:#000;" onclick="takeScreenshot()">結果を画像で保存</button>
                         </div>
                     </div>`;
             }
